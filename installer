@@ -1,0 +1,55 @@
+#!/bin/bash
+
+echo $'\n******************\n* OTT - Ascentio *\n******************\n'
+echo $'Guided installation\n'
+echo $'Checking for Docker Requirements:\n'
+
+if [ docker > /dev/null 2>&1 ]
+then
+	echo $"Warning: the \"docker\" command appears to already exist on this system.\nIf you already have Docker installed, this script can cause trouble, which is\nwhy we're displaying this warning and provide the opportunity to cancel the installation."
+fi
+
+
+OS_ID=$(. /etc/os-release && echo "$ID")
+OS_VER=$(. /etc/os-release && echo "$VERSION_ID")
+
+
+if [ $OS_ID = ubuntu ]
+then
+	if [ \( "$OS_VER"=="20.04" \)  -o \( "$OS_VER"=="18.04" \)  -o  \( "$OS_VER"=="16.04" \) ]
+	then
+		echo "The OS matches the requierements."
+	fi
+else
+	echo $"Newer version of the operating system is needed. Please check the following link for more information: https://docs.docker.com/engine/install/ \n"
+	exit 1
+fi
+
+
+user="$(id -un 2>/dev/null || true)"
+
+sh_c='sh -c'
+if [ "$user" != 'root' ]
+then
+	if [ sudo > /dev/null 2>&1 ]
+	then
+		sh_c='sudo -E sh -c'
+	elif [ su > /dev/null 2>&1 ]
+	then
+		sh_c='su -c'
+	else
+		echo $"\nError: this installer needs the ability to run commands as root.\nWe are unable to find either "sudo" or "su" available to make this happen."
+		exit 1
+	fi
+fi
+
+$sh_c "apt-get remove docker docker-engine docker.io containerd runc"
+$sh_c "apt update"
+$sh_c "apt-get install apt-transport-https ca-certificates curl gnupg-agent software-properties-common"
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $sh_c "apt-key add -"
+#TO DO: check apt-key fingerprint
+$sh_c 'add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"'
+$sh_c "apt-get update"
+$sh_c "apt-get install docker-ce docker-ce-cli containerd.io"
+$sh_c "apt update"
+
